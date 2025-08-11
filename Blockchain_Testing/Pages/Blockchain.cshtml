@@ -1,0 +1,16 @@
+﻿@page
+@model Blockchain_Testing.Pages.BlockchainModel
+
+<h1>Blockchain Status</h1>
+
+@foreach (var block in Model.Chain)
+{
+    <div>
+        <h4>Block #@block.Index</h4>
+        <p><strong>Timestamp:</strong> @block.Timestamp</p>
+        <p><strong>Data:</strong> @block.Data</p>
+        <p><strong>Hash:</strong> @block.Hash</p>
+        <p><strong>Previous Hash:</strong> @block.PreviousHash</p>
+        <hr />
+    </div>
+}

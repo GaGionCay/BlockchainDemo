@@ -1,0 +1,42 @@
+﻿@page
+@model Blockchain_Testing.Pages.Users.IndexModel
+@* @{ *@
+@*     ViewData["Title"] = "User Management"; *@
+@* } *@
+
+@* <h1>User Management</h1> *@
+
+@* @if (!string.IsNullOrEmpty(Model.ChainValidationMessage)) *@
+@* { *@
+@*     <div class="alert @(Model.IsChainValid ? "alert-success" : "alert-danger")"> *@
+@*         @Model.ChainValidationMessage *@
+@*     </div> *@
+@* } *@
+
+@* <table class="table"> *@
+@*     <thead> *@
+@*         <tr> *@
+@*             <th>Id</th> *@
+@*             <th>Username</th> *@
+@*             <th>Email</th> *@
+@*             <th>Blockchain Hash</th> *@
+@*             <th>Actions</th> *@
+@*         </tr> *@
+@*     </thead> *@
+@*     <tbody> *@
+@*         @foreach (var user in Model.Users) *@
+@*         { *@
+@*             <tr> *@
+@*                 <td>@user.Id</td> *@
+@*                 <td>@user.Username</td> *@
+@*                 <td>@user.Email</td> *@
+@*                 <td>@user.BlockchainHash</td> *@
+@*                 <td> *@
+@*                     <form method="post" asp-page-handler="Delete" asp-route-id="@user.Id"> *@
+@*                         <button type="submit" class="btn btn-danger btn-sm">Delete</button> *@
+@*                     </form> *@
+@*                 </td> *@
+@*             </tr> *@
+@*         } *@
+@*     </tbody> *@
+@* </table> *@

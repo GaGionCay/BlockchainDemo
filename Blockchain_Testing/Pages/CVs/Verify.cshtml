@@ -1,0 +1,71 @@
+﻿@page "{id:int}"
+@model Blockchain_Testing.Pages.CVs.VerifyModel
+@using System.Linq
+
+<h1>Xác thực CV</h1>
+<hr />
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert @(Model.IsVerified ? "alert-success" : "alert-danger")">
+        @Model.Message
+    </div>
+}
+
+@if (Model.CV != null)
+{
+    <div>
+        <h2>Thông tin CV</h2>
+        <p><strong>Tiêu đề:</strong> @Model.CV.Title</p>
+        <p><strong>Ngày tạo:</strong> @Model.CV.CreatedAt.ToShortDateString()</p>
+        <p><strong>Hash gốc:</strong> @Model.CV.BlockchainHash</p>
+
+        @if (!string.IsNullOrEmpty(Model.RecalculatedHash))
+        {
+            <p><strong>Hash tính toán lại:</strong> @Model.RecalculatedHash</p>
+        }
+
+        <hr />
+
+        @* Hiển thị danh sách Kinh nghiệm làm việc *@
+        @if (Model.CV.Experiences != null && Model.CV.Experiences.Any())
+        {
+            <h3>Kinh nghiệm làm việc</h3>
+            <ul>
+                @foreach (var exp in Model.CV.Experiences)
+                {
+                    <li>
+                        <strong>@exp.Position</strong> tại @exp.Company
+                        <p>@exp.Description</p>
+                    </li>
+                }
+            </ul>
+        }
+
+        @* Hiển thị danh sách Học vấn *@
+        @if (Model.CV.Educations != null && Model.CV.Educations.Any())
+        {
+            <h3>Học vấn</h3>
+            <ul>
+                @foreach (var edu in Model.CV.Educations)
+                {
+                    <li>
+                        <strong>@edu.Degree</strong> tại @edu.School
+                        <p>@edu.Description</p>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+
+    <hr />
+
+    <form method="post">
+        <input type="hidden" asp-for="id" />
+        <button type="submit" class="btn btn-primary">Xác thực CV</button>
+    </form>
+}
+else
+{
+    <p>Không tìm thấy CV hoặc dữ liệu không hợp lệ.</p>
+}

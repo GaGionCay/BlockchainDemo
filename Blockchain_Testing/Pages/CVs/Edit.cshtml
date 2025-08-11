@@ -1,0 +1,60 @@
+﻿@page
+@model Blockchain_Testing.Pages.CVs.EditModel
+@{
+    ViewData["Title"] = "Chỉnh sửa CV";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Chỉnh sửa CV</h1>
+
+    <form method="post" class="space-y-6">
+        <input type="hidden" asp-for="CV.Id" />
+        <input type="hidden" asp-for="CV.BlockchainHash" />
+
+        <!-- Tiêu đề CV -->
+        <div>
+            <label asp-for="CV.Title" class="block text-sm font-medium text-gray-700">Tiêu đề CV</label>
+            <input asp-for="CV.Title" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+        </div>
+
+        <!-- Kinh nghiệm làm việc -->
+        <h2 class="text-xl font-bold mt-8 mb-4 text-gray-800">Kinh nghiệm làm việc</h2>
+        <div id="experiences-container">
+            @for (int i = 0; i < Model.CV.Experiences.Count; i++)
+            {
+                <div class="space-y-4 p-4 border border-gray-200 rounded-md">
+                    <input type="hidden" asp-for="CV.Experiences[i].Id" />
+                    <div>
+                        <label asp-for="CV.Experiences[i].Company" class="block text-sm font-medium text-gray-700">Công ty</label>
+                        <input asp-for="CV.Experiences[i].Company" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                    </div>
+                    <div>
+                        <label asp-for="CV.Experiences[i].Position" class="block text-sm font-medium text-gray-700">Vị trí</label>
+                        <input asp-for="CV.Experiences[i].Position" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Học vấn -->
+        <h2 class="text-xl font-bold mt-8 mb-4 text-gray-800">Học vấn</h2>
+        <div id="educations-container">
+            @for (int i = 0; i < Model.CV.Educations.Count; i++)
+            {
+                <div class="space-y-4 p-4 border border-gray-200 rounded-md">
+                    <input type="hidden" asp-for="CV.Educations[i].Id" />
+                    <div>
+                        <label asp-for="CV.Educations[i].School" class="block text-sm font-medium text-gray-700">Trường</label>
+                        <input asp-for="CV.Educations[i].School" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                    </div>
+                    <div>
+                        <label asp-for="CV.Educations[i].Degree" class="block text-sm font-medium text-gray-700">Bằng cấp</label>
+                        <input asp-for="CV.Educations[i].Degree" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                    </div>
+                </div>
+            }
+        </div>
+
+        <button type="submit" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Lưu thay đổi</button>
+    </form>
+</div>

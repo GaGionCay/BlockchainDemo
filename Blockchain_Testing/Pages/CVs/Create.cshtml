@@ -1,0 +1,77 @@
+﻿@page
+@model Blockchain_Testing.Pages.CVs.CreateModel
+<h1>Create New CV</h1>
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="form-group">
+        <label asp-for="CV.Title" class="control-label"></label>
+        <input asp-for="CV.Title" class="form-control" />
+        <span asp-validation-for="CV.Title" class="text-danger"></span>
+    </div>
+
+    <h3>Experiences</h3>
+    <div id="experiences-container">
+        @* Dynamic fields will be added here *@
+    </div>
+    <button type="button" id="add-experience-btn" class="btn btn-secondary mt-2">Add Experience</button>
+
+    <h3>Educations</h3>
+    <div id="educations-container">
+        @* Dynamic fields will be added here *@
+    </div>
+    <button type="button" id="add-education-btn" class="btn btn-secondary mt-2">Add Education</button>
+
+    <div class="form-group mt-3">
+        <input type="submit" value="Create" class="btn btn-primary" />
+    </div>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        document.getElementById('add-experience-btn').addEventListener('click', () => {
+            const container = document.getElementById('experiences-container');
+            const index = container.children.length;
+            const newExperienceHtml = `
+                <div class="border p-3 mb-3">
+                    <div class="form-group">
+                        <label>Company</label>
+                        <input name="CV.Experiences[${index}].Company" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Position</label>
+                        <input name="CV.Experiences[${index}].Position" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea name="CV.Experiences[${index}].Description" class="form-control"></textarea>
+                    </div>
+                </div>`;
+            container.insertAdjacentHTML('beforeend', newExperienceHtml);
+        });
+
+        document.getElementById('add-education-btn').addEventListener('click', () => {
+            const container = document.getElementById('educations-container');
+            const index = container.children.length;
+            const newEducationHtml = `
+                <div class="border p-3 mb-3">
+                    <div class="form-group">
+                        <label>School</label>
+                        <input name="CV.Educations[${index}].School" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Degree</label>
+                        <input name="CV.Educations[${index}].Degree" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea name="CV.Educations[${index}].Description" class="form-control"></textarea>
+                    </div>
+                </div>`;
+            container.insertAdjacentHTML('beforeend', newEducationHtml);
+        });
+    </script>
+}
