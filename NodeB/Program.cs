@@ -15,7 +15,7 @@ var p2pNode = new P2PNode(blockchain, "Node B");
 p2pNode.Start(8889, new List<string> { "127.0.0.1:8888", "127.0.0.1:8890" });
 
 Console.WriteLine("Node B đã khởi động và kết nối tới Node A và Node C.");
-Console.WriteLine("Nhập 'mine' để tạo một block mới và phát tán.");
+Console.WriteLine("Nhập 'mine' để đào các giao dịch đang chờ và phát tán block mới.");
 Console.WriteLine("---------------------------------------------");
 
 while (true)
@@ -23,10 +23,17 @@ while (true)
     var input = Console.ReadLine();
     if (input != null && input.ToLower() == "mine")
     {
-        // Tạo một block mới với dữ liệu giả lập từ Node B
-        var newBlock = blockchain.AddBlock("Dữ liệu CV mới từ Node B");
-        // Phát tán block này tới các node khác trong mạng lưới và gửi kèm tên của node
-        p2pNode.BroadcastBlock(newBlock, "Node B");
-        Console.WriteLine($"[Node B] Đã tạo 1 block mới và send broadcast tới các node còn lại.");
+        try
+        {
+            // Đào một block mới từ các giao dịch đang chờ
+            var newBlock = blockchain.MinePendingTransactions();
+            // Phát tán block này tới các node khác trong mạng lưới và gửi kèm tên của node
+            p2pNode.BroadcastBlock(newBlock, "Node B");
+            Console.WriteLine($"[Node B] Đã đào thành công một block mới và phát tán tới các node còn lại.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"[Node B] Lỗi: {ex.Message}");
+        }
     }
 }

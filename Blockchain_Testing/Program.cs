@@ -21,8 +21,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Thêm các dịch vụ vào container.
 builder.Services.AddRazorPages();
-builder.Services.AddSingleton<BlockchainCore.BlockchainService>();
-builder.Services.AddSingleton<Blockchain_Testing.Services.BlockchainService>();
+
 // Cấu hình cơ sở dữ liệu và Identity
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -32,6 +31,7 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
 
 // Thêm dịch vụ BlockchainService và P2PNode dưới dạng Singleton
 builder.Services.AddSingleton<BlockchainCore.BlockchainService>();
+builder.Services.AddSingleton<Blockchain_Testing.Services.BlockchainService>();
 
 // Sử dụng factory để khởi tạo P2PNode và tiêm BlockchainService
 builder.Services.AddSingleton<P2PNode>(sp =>
@@ -92,12 +92,19 @@ app.MapGet("/", () => Results.Redirect("/Account/Login"));
 app.MapRazorPages();
 
 // API endpoint mới để đào và phát tán block
-// Bạn có thể gọi endpoint này bằng HTTP POST để tạo block mới.
-app.MapPost("/mine", (string data, BlockchainCore.BlockchainService blockchain, P2PNode p2pNode) =>
+// Endpoint này sẽ gom các giao dịch đang chờ để đào thành một block mới.
+app.MapPost("/mine", (BlockchainCore.BlockchainService blockchain, P2PNode p2pNode) =>
 {
-    var newBlock = blockchain.AddBlock(data);
-    p2pNode.BroadcastBlock(newBlock, "Node A");
-    return Results.Ok($"[Node A] Đã tạo 1 block mới với dữ liệu '{data}' và phát tán tới các node còn lại.");
+    try
+    {
+        var newBlock = blockchain.MinePendingTransactions();
+        p2pNode.BroadcastBlock(newBlock, "Node A");
+        return Results.Ok($"[Node A] Đã đào thành công một block mới chứa các giao dịch đang chờ và phát tán tới các node còn lại.");
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(ex.Message);
+    }
 });
 
 app.Run();

@@ -1,38 +1,55 @@
 ﻿@page
 @model Blockchain_Testing.Pages.CVs.IndexModel
 
-<h1>My CVs</h1>
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">My CVs</h1>
 
-<a asp-page="Create" class="btn btn-primary">Create New CV</a>
+    <a asp-page="Create" class="inline-block px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Create New CV</a>
 
-<table class="table mt-3">
-    <thead>
-        <tr>
-            <th>Title</th>
-            <th>Created At</th>
-            <th>Blockchain Hash</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var cv in Model.CVs)
-        {
+    <table class="min-w-full divide-y divide-gray-200 mt-6">
+        <thead class="bg-gray-50">
             <tr>
-                <td>@cv.Title</td>
-                <td>@cv.CreatedAt.ToShortDateString()</td>
-                <td>@cv.BlockchainHash</td>
-                <td>
-                    <a asp-page="Details" asp-route-id="@cv.Id" class="btn btn-info btn-sm">View</a>
-                    <a asp-page="Edit" asp-route-id="@cv.Id" class="btn btn-warning btn-sm">Edit</a>
-                    <a asp-page="Verify" asp-route-id="@cv.Id" class="btn btn-success btn-sm">Verify</a>
-
-                    @* Thêm form xóa *@
-                    <form method="post" asp-page-handler="Delete" style="display:inline;">
-                        <input type="hidden" name="id" value="@cv.Id" />
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this CV?');">Delete</button>
-                    </form>
-                </td>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tiêu đề</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái Blockchain</th>
+                <th scope="col" class="relative px-6 py-3">
+                    <span class="sr-only">Hành động</span>
+                </th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            @foreach (var cvVm in Model.CVs)
+            {
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        @cvVm.CV.Title
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        @cvVm.CV.CreatedAt.ToShortDateString()
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">
+                        @if (cvVm.BlockchainBlock != null)
+                        {
+                            <span class="text-green-600 font-bold">Đã lưu</span>
+                            <span class="block text-xs text-gray-400 truncate">Hash: @cvVm.BlockchainBlock.Hash</span>
+                            <span class="block text-xs text-gray-400">Index: @cvVm.BlockchainBlock.Index</span>
+                        }
+                        else
+                        {
+                            <span class="text-red-600 font-bold">Chưa lưu</span>
+                        }
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a asp-page="Details" asp-route-id="@cvVm.CV.Id" class="text-blue-600 hover:text-blue-900 mr-2">Xem</a>
+                        <a asp-page="Edit" asp-route-id="@cvVm.CV.Id" class="text-indigo-600 hover:text-indigo-900 mr-2">Chỉnh sửa</a>
+                        <a asp-page="Verify" asp-route-id="@cvVm.CV.Id" class="text-green-600 hover:text-green-900 mr-2">Xác thực</a>
+                        <form method="post" asp-page-handler="Delete" style="display:inline;">
+                            <input type="hidden" name="id" value="@cvVm.CV.Id" />
+                            <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Bạn có chắc chắn muốn xóa CV này không?');">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

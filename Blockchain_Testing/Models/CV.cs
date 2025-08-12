@@ -37,5 +37,11 @@ namespace Blockchain_Testing.Models
 
         // Thêm trường Signature để lưu chữ ký của block
         public string? Signature { get; set; }
+
+        // Thêm trường để liên kết với giao dịch trên blockchain
+        public string? TransactionId { get; set; }
+
+        // Thêm trường để theo dõi trạng thái của CV (ví dụ: Pending, Mined)
+        public string? Status { get; set; }
     }
 }
