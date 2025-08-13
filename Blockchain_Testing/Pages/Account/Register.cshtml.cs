@@ -6,13 +6,14 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace Blockchain_Testing.Pages.Account
 {
     public class RegisterModel : PageModel
     {
         private readonly AppDbContext _db;
-        private readonly BlockchainService _blockchain;
+        private readonly Blockchain_Testing.Services.BlockchainService _blockchain;
 
         public RegisterModel(AppDbContext db, BlockchainService blockchain)
         {
@@ -21,16 +22,24 @@ namespace Blockchain_Testing.Pages.Account
         }
 
         [BindProperty]
-        public RegisterInputModel Input { get; set; }
+        public RegisterInputModel Input { get; set; } = new();
 
         public void OnGet() { }
 
         public IActionResult OnPost()
         {
-            // Đảm bảo bạn mở lại dòng này
-            //if (!ModelState.IsValid) return Page();
+            if (!ModelState.IsValid || Input is null)
+                return Page();
 
-            // Kiểm tra username và email đã tồn tại chưa
+            if (string.IsNullOrWhiteSpace(Input.Username) ||
+                string.IsNullOrWhiteSpace(Input.Email) ||
+                string.IsNullOrWhiteSpace(Input.Password) ||
+                string.IsNullOrWhiteSpace(Input.ConfirmPassword))
+            {
+                ModelState.AddModelError(string.Empty, "Please fill in all required fields.");
+                return Page();
+            }
+
             if (_db.Users.Any(u => u.Username == Input.Username))
             {
                 ModelState.AddModelError("Input.Username", "Tên người dùng đã tồn tại.");
@@ -47,16 +56,27 @@ namespace Blockchain_Testing.Pages.Account
 
             var newUser = new User
             {
-                // Xóa Input.Id
                 Username = Input.Username,
                 Email = Input.Email,
                 PasswordHash = hashedPassword,
                 CreatedAt = DateTime.UtcNow
             };
 
-            var userData = $"{newUser.Username}-{newUser.Email}-{newUser.CreatedAt}";
-            var block = _blockchain.AddBlock(userData);
-            newUser.BlockchainHash = block.Hash;
+            // Serialize đối tượng User thành chuỗi JSON
+            var userDataAsJson = JsonSerializer.Serialize(newUser);
+
+            // Tạo một đối tượng giao dịch (Transaction) mới, cung cấp đủ 3 tham số bắt buộc.
+            // Sử dụng các giá trị placeholder cho fromAddress và amount.
+            var newTransaction = new Transaction(
+                fromAddress: "SYSTEM_REGISTRATION", // Địa chỉ đặc biệt cho giao dịch đăng ký
+                toAddress: newUser.Username,        // Địa chỉ của người dùng mới
+                amount: 0.0m,                       // Không có giá trị tiền tệ
+                data: userDataAsJson                // Dữ liệu đăng ký người dùng
+            );
+
+            _blockchain.AddTransaction(newTransaction);
+            var minedBlock = _blockchain.MinePendingTransactions();
+            newUser.BlockchainHash = minedBlock.Hash;
 
             _db.Users.Add(newUser);
             _db.SaveChanges();
@@ -76,16 +96,16 @@ namespace Blockchain_Testing.Pages.Account
             public int Id { get; set; }
 
             [Required, MaxLength(50)]
-            public string Username { get; set; }
+            public string Username { get; set; } = string.Empty;
 
             [Required, EmailAddress, MaxLength(100)]
-            public string Email { get; set; }
+            public string Email { get; set; } = string.Empty;
 
             [Required, DataType(DataType.Password)]
-            public string Password { get; set; }
+            public string Password { get; set; } = string.Empty;
 
             [Required, DataType(DataType.Password), Compare("Password", ErrorMessage = "Mật khẩu xác nhận không khớp.")]
-            public string ConfirmPassword { get; set; }
+            public string ConfirmPassword { get; set; } = string.Empty;
         }
     }
 }

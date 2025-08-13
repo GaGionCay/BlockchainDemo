@@ -8,6 +8,7 @@ using System.Linq;
 using Blockchain_Testing.Models;
 using System.Security.Cryptography;
 using System.Text;
+using System.Collections.Generic; // Thêm thư viện này để sử dụng List
 
 namespace Blockchain_Testing.Pages.CVs
 {
@@ -29,73 +30,97 @@ namespace Blockchain_Testing.Pages.CVs
         public bool IsVerified { get; set; }
         public string? Message { get; set; }
         public string? RecalculatedHash { get; set; }
+        public Block? BlockFromBlockchain { get; set; }
 
         public async Task OnGetAsync()
         {
             CV = await _db.CVs
-                          .Include(c => c.Experiences)
-                          .Include(c => c.Educations)
-                          .FirstOrDefaultAsync(c => c.Id == id);
+                            .Include(c => c.Experiences)
+                            .Include(c => c.Educations)
+                            .FirstOrDefaultAsync(c => c.Id == id);
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
             CV = await _db.CVs
-                          .Include(c => c.Experiences)
-                          .Include(c => c.Educations)
-                          .FirstOrDefaultAsync(c => c.Id == id);
+                            .Include(c => c.Experiences)
+                            .Include(c => c.Educations)
+                            .FirstOrDefaultAsync(c => c.Id == id);
 
             if (CV == null)
             {
                 Message = "CV not found.";
+                IsVerified = false;
                 return Page();
             }
 
-            var block = _blockchain.Chain.FirstOrDefault(b => b.Hash == CV.BlockchainHash);
-
-            if (block == null)
+            // Tìm block tương ứng trên blockchain bằng hash được lưu trong CV.
+            BlockFromBlockchain = _blockchain.Chain.FirstOrDefault(b => b.Hash == CV.BlockchainHash);
+            if (BlockFromBlockchain == null)
             {
                 Message = "CV hash not found on blockchain. System integrity may be compromised.";
                 IsVerified = false;
                 return Page();
             }
 
-            var cvData = new
+            // Khôi phục lại dữ liệu CV ban đầu (dạng Transaction) từ block đã lưu
+            // Giả sử block.Transactions là danh sách các giao dịch liên quan đến CV
+            // Note: Cấu trúc này cần được định nghĩa rõ ràng khi bạn tạo block
+            // Hiện tại, chúng ta sẽ tạo lại transaction từ dữ liệu CV.
+            var cvTransaction = new Transaction(
+                fromAddress: CV.UserId.ToString(), // Hoặc một địa chỉ ví cụ thể
+                toAddress: "CV_HASH_STORE",
+                amount: 1m // Tùy thuộc vào logic của bạn
+            );
+
+            // Giả sử block chỉ chứa một transaction duy nhất liên quan đến CV này.
+            // Điều này cần được đảm bảo trong logic tạo block của bạn.
+            var tempTransactions = new List<Transaction> { cvTransaction };
+
+            // Bước 1: Kiểm tra tính toàn vẹn của Hash
+            // Tạo một đối tượng block tạm thời với dữ liệu CV từ cơ sở dữ liệu
+            // Gán dữ liệu này vào một Transaction để khớp với cấu trúc Block mới
+            var tempBlock = new Block(
+                BlockFromBlockchain.Index,
+                tempTransactions, // Sử dụng danh sách transaction đã tạo
+                BlockFromBlockchain.PreviousHash)
             {
-                CV.Id,
-                CV.Title,
-                CreatedAt = CV.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ"),
-                CV.UserId,
-                Experiences = CV.Experiences.OrderBy(e => e.Id).ToList(),
-                Educations = CV.Educations.OrderBy(e => e.Id).ToList()
+                Nonce = BlockFromBlockchain.Nonce,
+                Difficulty = BlockFromBlockchain.Difficulty
             };
 
-            var serializedCV = JsonSerializer.Serialize(cvData, new JsonSerializerOptions { WriteIndented = false });
-
-            // Bước 1: Xác thực Hash (kiểm tra tính toàn vẹn của dữ liệu)
-            RecalculatedHash = _blockchain.CalculateHash(
-                block.Index,
-                block.Timestamp,
-                serializedCV,
-                block.PreviousHash,
-                block.Nonce
-            );
+            // Tính toán lại hash bằng phương thức của chính đối tượng block
+            RecalculatedHash = tempBlock.CalculateHash();
 
             bool isHashValid = RecalculatedHash == CV.BlockchainHash;
 
-            // Bước 2: Xác thực Chữ ký số (kiểm tra tính xác thực của người tạo)
+            // Bước 2: Kiểm tra tính xác thực của chữ ký số
             bool isSignatureValid = false;
+            // Lưu ý: Logic kiểm tra chữ ký này không phụ thuộc vào cấu trúc của Block,
+            // nó chỉ phụ thuộc vào dữ liệu được ký (serializedCV).
+            // Dòng này cần phải được lấy từ nơi bạn đã ký dữ liệu CV.
+            var serializedCV = JsonSerializer.Serialize(CV, new JsonSerializerOptions { WriteIndented = false });
+
             try
             {
-                using var rsa = new RSACryptoServiceProvider();
-                rsa.FromXmlString(CV.PublicKey);
-                var dataBytes = Encoding.UTF8.GetBytes(serializedCV);
-                var signatureBytes = Convert.FromBase64String(CV.Signature);
-                isSignatureValid = rsa.VerifyData(dataBytes, SHA256.Create(), signatureBytes);
+                if (!string.IsNullOrWhiteSpace(CV.PublicKey) && !string.IsNullOrWhiteSpace(CV.Signature))
+                {
+                    using var rsa = new RSACryptoServiceProvider();
+                    rsa.FromXmlString(CV.PublicKey);
+
+                    var dataBytes = Encoding.UTF8.GetBytes(serializedCV);
+                    var signatureBytes = Convert.FromBase64String(CV.Signature);
+
+                    using var sha = SHA256.Create();
+                    isSignatureValid = rsa.VerifyData(dataBytes, sha, signatureBytes);
+                }
+                else
+                {
+                    isSignatureValid = false;
+                }
             }
             catch
             {
-                // Xử lý lỗi nếu public key hoặc signature không hợp lệ
                 isSignatureValid = false;
             }
 

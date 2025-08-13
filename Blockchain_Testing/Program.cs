@@ -13,6 +13,9 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using System.Net.Sockets;
+using System.Net;
+using System.Security.Cryptography;
 
 // Đặt encoding để hiển thị tiếng Việt chính xác
 Console.OutputEncoding = Encoding.UTF8;
@@ -29,19 +32,21 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<AppDbContext>();
 
-// Thêm dịch vụ BlockchainService và P2PNode dưới dạng Singleton
+// CHỈ SỬ DỤNG MỘT SERVICE BLOCKCHAIN DUY NHẤT.
+// Dịch vụ này sẽ được chia sẻ cho cả P2PNode và các trang Razor.
 builder.Services.AddSingleton<BlockchainCore.BlockchainService>();
-builder.Services.AddSingleton<Blockchain_Testing.Services.BlockchainService>();
-
+builder.Services.AddScoped<Blockchain_Testing.Services.BlockchainService>();
 // Sử dụng factory để khởi tạo P2PNode và tiêm BlockchainService
+// Sửa đổi để sử dụng constructor có seedNodes
 builder.Services.AddSingleton<P2PNode>(sp =>
 {
     var blockchainService = sp.GetRequiredService<BlockchainCore.BlockchainService>();
-    return new P2PNode(blockchainService, "Node A");
+    // Bạn có thể thêm các seed node vào danh sách này nếu cần
+    var seedNodes = new List<string> { /* "127.0.0.1:8889" */ };
+    return new P2PNode(blockchainService, "Node A", seedNodes);
 });
 
 // Đăng ký dịch vụ nền để chạy P2PNode
-// Điều này giúp P2P Node chạy độc lập với máy chủ web.
 builder.Services.AddHostedService<P2PBackgroundService>();
 
 // Cấu hình xác thực
@@ -92,13 +97,14 @@ app.MapGet("/", () => Results.Redirect("/Account/Login"));
 app.MapRazorPages();
 
 // API endpoint mới để đào và phát tán block
-// Endpoint này sẽ gom các giao dịch đang chờ để đào thành một block mới.
 app.MapPost("/mine", (BlockchainCore.BlockchainService blockchain, P2PNode p2pNode) =>
 {
     try
     {
         var newBlock = blockchain.MinePendingTransactions();
-        p2pNode.BroadcastBlock(newBlock, "Node A");
+        // Cần đảm bảo rằng p2pNode.BroadcastBlock có thể nhận được block đã đào.
+        // Cần thay đổi P2PNode.BroadcastBlock để có thể nhận block và gửi đi
+        p2pNode.BroadcastBlock(newBlock);
         return Results.Ok($"[Node A] Đã đào thành công một block mới chứa các giao dịch đang chờ và phát tán tới các node còn lại.");
     }
     catch (InvalidOperationException ex)
@@ -121,15 +127,12 @@ public class P2PBackgroundService : IHostedService
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        // Khởi động P2P Node của Node A.
-        // Chú ý: Node A không cần kết nối tới seed node nào vì nó là node đầu tiên.
-        _p2pNode.Start(8888, new List<string>());
+        _p2pNode.Start(8888);
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        // Thực hiện dọn dẹp nếu cần thiết khi ứng dụng dừng.
         return Task.CompletedTask;
     }
 }

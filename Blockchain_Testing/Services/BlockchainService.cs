@@ -1,20 +1,22 @@
 ﻿using Blockchain_Testing.Models;
-using System.Security.Cryptography;
-using System.Text;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json; // Thêm namespace này để serialize dữ liệu
 
 namespace Blockchain_Testing.Services
 {
     public class BlockchainService
     {
-        // Danh sách các block tạo nên blockchain
         public List<Block> Chain { get; set; }
+        // Một danh sách để lưu trữ các giao dịch đang chờ được khai thác
+        public List<Transaction> PendingTransactions { get; set; }
+        private readonly int _difficulty = 2; // Độ khó của việc khai thác
 
         public BlockchainService()
         {
             // Khởi tạo blockchain với một genesis block duy nhất
+            PendingTransactions = new List<Transaction>();
             Chain = new List<Block> { CreateGenesisBlock() };
         }
 
@@ -23,17 +25,10 @@ namespace Blockchain_Testing.Services
         /// </summary>
         private Block CreateGenesisBlock()
         {
-            var genesisBlock = new Block
-            {
-                Index = 0,
-                Timestamp = DateTime.UtcNow,
-                Data = "Genesis Block",
-                PreviousHash = "0",
-                Nonce = 0 // Khởi tạo nonce
-            };
-
-            // "Đào" genesis block với độ khó thấp
-            return MineBlock(genesisBlock, 2);
+            // Genesis block chứa một danh sách giao dịch rỗng
+            var genesisBlock = new Block(0, new List<Transaction>(), "0");
+            // Khai thác genesis block với độ khó đã định
+            return MineBlock(genesisBlock);
         }
 
         /// <summary>
@@ -42,62 +37,58 @@ namespace Blockchain_Testing.Services
         public Block GetLatestBlock() => Chain.Last();
 
         /// <summary>
-        /// Thêm một block mới vào chuỗi.
+        /// Thêm một giao dịch mới vào danh sách chờ xử lý.
         /// </summary>
-        /// <param name="data">Dữ liệu của block.</param>
-        public Block AddBlock(string data)
+        /// <param name="transaction">Đối tượng giao dịch cần thêm.</param>
+        public void AddTransaction(Transaction transaction)
         {
+            // Thêm giao dịch vào danh sách chờ
+            PendingTransactions.Add(transaction);
+        }
+
+        /// <summary>
+        /// Thực hiện quá trình khai thác (mining) các giao dịch đang chờ xử lý.
+        /// </summary>
+        public Block MinePendingTransactions()
+        {
+            // Lấy block trước đó để tạo liên kết
             var previousBlock = GetLatestBlock();
-            var newBlock = new Block
-            {
-                Index = previousBlock.Index + 1,
-                Timestamp = DateTime.UtcNow,
-                Data = data,
-                PreviousHash = previousBlock.Hash,
-                Nonce = 0 // Khởi tạo nonce trước khi đào
-            };
+
+            // Tạo một block mới từ các giao dịch đang chờ
+            var newBlock = new Block(previousBlock.Index + 1, PendingTransactions, previousBlock.Hash);
+
+            Console.WriteLine("Bắt đầu khai thác block mới...");
 
             // Thực hiện quá trình đào để tìm hash hợp lệ
-            var difficulty = 2; // Độ khó của việc đào, có thể điều chỉnh
-            newBlock = MineBlock(newBlock, difficulty);
+            var minedBlock = MineBlock(newBlock);
 
-            Chain.Add(newBlock);
-            return newBlock;
+            Console.WriteLine("Khai thác thành công!");
+
+            // Thêm block đã được khai thác vào chuỗi
+            Chain.Add(minedBlock);
+
+            // Xóa danh sách giao dịch đang chờ để chuẩn bị cho block tiếp theo
+            PendingTransactions = new List<Transaction>();
+            return minedBlock;
         }
 
         /// <summary>
         /// Thực hiện thuật toán "Proof-of-Work" để tìm hash hợp lệ.
         /// </summary>
         /// <param name="block">Block cần đào.</param>
-        /// <param name="difficulty">Số lượng số 0 đứng đầu hash yêu cầu.</param>
-        public Block MineBlock(Block block, int difficulty)
+        public Block MineBlock(Block block)
         {
-            var leadingZeros = new string('0', difficulty);
-            int nonce = 0;
-            string hash;
+            block.Difficulty = _difficulty;
+            var leadingZeros = new string('0', _difficulty);
 
-            // Lặp cho đến khi tìm được hash bắt đầu bằng số 0 mong muốn
             do
             {
-                nonce++;
-                hash = CalculateHash(block.Index, block.Timestamp, block.Data, block.PreviousHash, nonce);
-            } while (!hash.StartsWith(leadingZeros));
+                block.Nonce++;
+                // Sử dụng phương thức CalculateHash() mới của block
+                block.Hash = block.CalculateHash();
+            } while (block.Hash == null || !block.Hash.StartsWith(leadingZeros));
 
-            block.Hash = hash;
-            block.Nonce = nonce;
             return block;
-        }
-
-        /// <summary>
-        /// Tính toán hash cho một block.
-        /// </summary>
-        public string CalculateHash(int index, DateTime timestamp, string? data, string? previousHash, int nonce)
-        {
-            using var sha256 = SHA256.Create();
-            // Đảm bảo tất cả các tham số được dùng để tạo hash
-            var rawData = $"{index}{timestamp}{data}{previousHash}{nonce}";
-            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(rawData));
-            return Convert.ToHexString(bytes);
         }
 
         /// <summary>
@@ -110,16 +101,18 @@ namespace Blockchain_Testing.Services
                 var currentBlock = Chain[i];
                 var previousBlock = Chain[i - 1];
 
-                // Kiểm tra hash của block hiện tại
-                var calculatedHash = CalculateHash(currentBlock.Index, currentBlock.Timestamp, currentBlock.Data, currentBlock.PreviousHash, currentBlock.Nonce);
+                // Tính toán lại hash của block hiện tại và so sánh
+                var calculatedHash = currentBlock.CalculateHash();
                 if (currentBlock.Hash != calculatedHash)
                 {
+                    Console.WriteLine($"Hash không hợp lệ ở block index {currentBlock.Index}");
                     return false;
                 }
 
                 // Kiểm tra PreviousHash có khớp với Hash của block trước đó không
                 if (currentBlock.PreviousHash != previousBlock.Hash)
                 {
+                    Console.WriteLine($"PreviousHash không khớp ở block index {currentBlock.Index}");
                     return false;
                 }
             }
