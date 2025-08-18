@@ -390,7 +390,7 @@ namespace BlockchainCore
             _nodeName = nodeName;
             _seedNodes = seedNodes;
         }
-
+         
         public void Start(int port)
         {
             _server = new TcpListener(IPAddress.Any, port);
@@ -400,6 +400,9 @@ namespace BlockchainCore
             Task.Run(() => ListenForConnections());
             Task.Run(() => HandlePeerMessages());
             Task.Run(() => MonitorPeersAndReconnect());
+
+            // THÊM DÒNG NÀY: Khởi chạy vòng lặp đào tự động trong một luồng riêng
+            Task.Run(() => StartMiningLoop());
 
             if (_seedNodes.Count == 0 && _blockchain.Chain.Count <= 1)
             {
@@ -701,6 +704,34 @@ namespace BlockchainCore
         {
             _blockchain.AddTransactionToPending(transaction);
             BroadcastTransaction(transaction, null);
+        }
+        // Thêm phương thức này vào trong class P2PNode
+        private void StartMiningLoop()
+        {
+            Logger.LogInfo("Vòng lặp đào tự động đã được bắt đầu.");
+            while (true)
+            {
+                // Chỉ đào khi có giao dịch đang chờ
+                if (_blockchain.PendingTransactions.Any())
+                {
+                    Logger.LogInfo($"Phát hiện có {_blockchain.PendingTransactions.Count} giao dịch đang chờ. Bắt đầu đào block mới...");
+
+                    // Gọi hàm đào từ BlockchainService
+                    Block? newBlock = _blockchain.MinePendingTransactions();
+
+                    if (newBlock != null)
+                    {
+                        Logger.LogInfo($"Đào thành công block #{newBlock.Index}. Đang phát tán tới mạng lưới...");
+                        // Phát tán block vừa đào được cho các node khác
+                        BroadcastBlock(newBlock);
+                    }
+                }
+
+                // Tạm dừng một khoảng thời gian để tránh chiếm dụng CPU không cần thiết
+                // Trong thực tế, các thợ đào sẽ chạy liên tục, nhưng với mục đích mô phỏng,
+                // việc tạm dừng là hợp lý.
+                Thread.Sleep(10000); // Chờ 10 giây rồi kiểm tra lại
+            }
         }
     }
 }
