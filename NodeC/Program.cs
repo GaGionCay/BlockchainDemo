@@ -5,7 +5,7 @@ using System.Text;
 Console.OutputEncoding = Encoding.UTF8;
 Console.Title = "Node C";
 
-var blockchain = new BlockchainService();
+var blockchain = new BlockchainCore.BlockchainCore();
 var seedNodes = new List<string> { "127.0.0.1:8888", "127.0.0.1:8889" };
 var p2pNode = new P2PNode(blockchain, "Node C", seedNodes);
 p2pNode.Start(8890);
@@ -32,7 +32,7 @@ while (true)
                 var transactionData = Console.ReadLine();
                 if (!string.IsNullOrEmpty(transactionData))
                 {
-                    var newTransaction = new Transaction
+                    var newTransaction = new BlockchainCore.Models.Transaction
                     {
                         TransactionId = Guid.NewGuid().ToString(),
                         FromAddress = "UserC",

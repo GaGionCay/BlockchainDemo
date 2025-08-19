@@ -91,7 +91,7 @@ namespace Blockchain_Testing.Pages.CVs
             CV.TransactionId = $"cv_{CV.Id}";
 
             // Bước 5: Tạo đối tượng giao dịch (Transaction)
-            var transaction = new BlockchainCore.Transaction
+            var transaction = new BlockchainCore.Models.Transaction
             {
                 FromAddress = CV.UserId.ToString(),
                 ToAddress = "CV_Storage_Wallet",

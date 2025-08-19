@@ -1,4 +1,4 @@
-﻿using BlockchainCore;
+﻿using BlockchainCore.Models;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +9,7 @@ namespace Blockchain_Testing.Pages
     public class BlockchainModel : PageModel
     {
         // Sử dụng dịch vụ từ BlockchainCore
-        private readonly BlockchainCore.BlockchainService _blockchain;
+        private readonly BlockchainCore.BlockchainCore _blockchain;
 
         // Thuộc tính để lưu trữ chuỗi blockchain
         public List<Block> Chain { get; set; }
@@ -22,7 +22,7 @@ namespace Blockchain_Testing.Pages
         public bool IsChainValid { get; set; }
 
         // Tiêm dịch vụ từ BlockchainCore
-        public BlockchainModel(BlockchainCore.BlockchainService blockchain)
+        public BlockchainModel(BlockchainCore.BlockchainCore blockchain)
         {
             _blockchain = blockchain;
         }
